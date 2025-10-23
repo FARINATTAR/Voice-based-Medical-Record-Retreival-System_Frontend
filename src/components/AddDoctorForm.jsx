@@ -77,25 +77,38 @@ const AddDoctorForm = ({ onSuccess, onClose }) => {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setError('');
+  setLoading(true);
 
-    try {
-      await axios.post('/admin/add-doctor', formData);
-      
-      setSuccess('Doctor added successfully!');
-      setTimeout(() => {
-        onSuccess();
-        onClose();
-      }, 1500);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to add doctor');
-    } finally {
-      setLoading(false);
+  try {
+    await axios.post('/admin/add-doctor', formData);
+    
+    setSuccess('Doctor added successfully!');
+    setTimeout(() => {
+      onSuccess();
+      onClose();
+    }, 1500);
+  } catch (err) {
+    // ✅ Better error handling
+    const errorMessage = err.response?.data?.message || 'Failed to add doctor';
+    
+    if (errorMessage.includes('duplicate') || errorMessage.includes('already exists')) {
+      if (errorMessage.includes('email')) {
+        setError('This email is already registered. Please use a different email.');
+      } else if (errorMessage.includes('license')) {
+        setError('This license number already exists. Please use a different license number.');
+      } else {
+        setError('Doctor with this information already exists.');
+      }
+    } else {
+      setError(errorMessage);
     }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">

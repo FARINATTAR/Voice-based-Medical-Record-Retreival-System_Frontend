@@ -68,71 +68,43 @@ const VoiceSearchModal = ({ onClose, patientId = null }) => {
       setLoading(false);
     }
   };
+const performSearch = async (query) => {
+  if (!query.trim()) {
+    setError('Please enter a search query');
+    return;
+  }
 
-  const performSearch = async (query) => {
-    if (!query.trim()) {
-      setError('Please enter a search query');
-      return;
+  setLoading(true);
+  setError('');
+
+  try {
+    console.log('🔍 Searching for:', query); // Debug
+
+    const response = await axios.post('/records/voice-search', {
+      query: query.trim(),
+      patientId: patientId
+    });
+
+    console.log('✅ Search response:', response.data); // Debug
+    console.log('📊 Keywords used:', response.data.keywords); // Debug
+    console.log('📋 Records found:', response.data.count); // Debug
+
+    setResults(response.data.records || []);
+    
+    if (response.data.records.length === 0) {
+      setError(`No records found for "${query}". Try different keywords.`);
     }
-
-    setLoading(true);
-    setError('');
-
-    try {
-      const response = await axios.post('/records/voice-search', {
-        query: query.trim(),
-        patientId: patientId
-      });
-
-      setResults(response.data.records || []);
-      
-      if (response.data.records.length === 0) {
-        setError('No records found matching your search');
-      }
-    } catch (err) {
-      setError(err.response?.data?.message || 'Search failed');
-    } finally {
-      setLoading(false);
-    }
-  };
+  } catch (err) {
+    console.error('❌ Search error:', err);
+    setError(err.response?.data?.message || 'Search failed');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleTextSearch = () => {
     performSearch(searchQuery);
   };
-
-//   const handleDownloadFile = async (recordId, fileIndex, fileName) => {
-//     try {
-//       const response = await axios.get(`/records/file/${recordId}/${fileIndex}`, {
-//         responseType: 'blob'
-//       });
-
-//       const url = window.URL.createObjectURL(new Blob([response.data]));
-//       const link = document.createElement('a');
-//       link.href = url;
-//       link.setAttribute('download', fileName);
-//       document.body.appendChild(link);
-//       link.click();
-//       link.remove();
-//     } catch (err) {
-//       console.error('Download error:', err);
-//       setError('Failed to download file');
-//     }
-//   };
-  
-
-//   const handleViewFile = async (recordId, fileIndex) => {
-//     try {
-//       const response = await axios.get(`/records/file/${recordId}/${fileIndex}`, {
-//         responseType: 'blob'
-//       });
-
-//       const url = window.URL.createObjectURL(new Blob([response.data]));
-//       window.open(url, '_blank');
-//     } catch (err) {
-//       console.error('View error:', err);
-//       setError('Failed to view file');
-//     }
-//   };
 
 const handleViewFile = async (recordId, fileIndex) => {
   try {
