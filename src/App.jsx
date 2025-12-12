@@ -11,7 +11,6 @@ import PatientLogin from './pages/PatientLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import DoctorDashboard from './pages/DoctorDashboard';
 import PatientDashboard from './pages/PatientDashboard';
-
 function App() {
   return (
     <AuthProvider>
