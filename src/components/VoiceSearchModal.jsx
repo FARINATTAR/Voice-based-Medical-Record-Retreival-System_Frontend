@@ -10,25 +10,76 @@ const VoiceSearchModal = ({ onClose, patientId = null }) => {
   const [results, setResults] = useState([]);
   const [mediaRecorder, setMediaRecorder] = useState(null);
 
+  // 🎙️ Voice Search (MODIFIED FOR VIDEO DEMO)
   const startVoiceRecording = async () => {
     try {
+      // 🎥 DEMO MODE: Simulate recording
+      setListening(true);
+      setError('');
+
+      setTimeout(() => {
+        const demoQuery = "Diabetes"; // Matching your script example
+        setSearchQuery(demoQuery);
+        setListening(false);
+
+        // 🌟 DEMO SEARCH RESULTS (FAKE DATA FOR VIDEO)
+        setResults([
+          {
+            _id: 'demo1',
+            patientId: {
+              name: 'Ramesh Gupta',
+              age: 52,
+              gender: 'Male',
+              phone: '9876543210'
+            },
+            hospitalId: {
+              name: 'City Care Hospital'
+            },
+            doctorId: {
+              name: 'Farin Attar',
+              specialization: 'General Physician'
+            },
+            diagnosis: 'Type 2 Diabetes Mellitus',
+            symptoms: 'Polydipsia, blurred vision, fatigue',
+            visitDate: new Date().toISOString(),
+            files: [
+              { originalName: 'Blood_Report.pdf', fileType: 'application/pdf', fileSize: 102400 },
+              { originalName: 'X_Ray_Chest.jpg', fileType: 'image/jpeg', fileSize: 500200 }
+            ]
+          },
+          {
+            _id: 'demo2',
+            patientId: {
+              name: 'Sita Verma',
+              age: 45,
+              gender: 'Female',
+              phone: '9988776655'
+            },
+            hospitalId: {
+              name: 'City Care Hospital'
+            },
+            doctorId: {
+              name: 'Farin Attar',
+              specialization: 'General Physician'
+            },
+            diagnosis: 'Pre-diabetic checkup',
+            symptoms: 'High blood sugar levels detected',
+            visitDate: new Date(Date.now() - 86400000).toISOString(),
+            files: []
+          }
+        ]);
+
+        // performSearch(demoQuery); // <-- DISABLED API CALL FOR DEMO
+      }, 3000);
+
+      /* REAL CODE COMMENTED OUT
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream);
-      const audioChunks = [];
-
-      recorder.ondataavailable = (event) => {
-        audioChunks.push(event.data);
-      };
-
-      recorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-        await transcribeAndSearch(audioBlob);
-        stream.getTracks().forEach(track => track.stop());
-      };
-
+      // ... (rest of real code)
       recorder.start();
       setMediaRecorder(recorder);
       setListening(true);
+      */
     } catch (err) {
       setError('Microphone access denied');
       console.error('Microphone error:', err);
@@ -36,10 +87,14 @@ const VoiceSearchModal = ({ onClose, patientId = null }) => {
   };
 
   const stopVoiceRecording = () => {
+    // For demo mode, just stop listening UI
+    setListening(false);
+    /*
     if (mediaRecorder) {
       mediaRecorder.stop();
       setListening(false);
     }
+    */
   };
 
   const transcribeAndSearch = async (audioBlob) => {
@@ -68,97 +123,97 @@ const VoiceSearchModal = ({ onClose, patientId = null }) => {
       setLoading(false);
     }
   };
-const performSearch = async (query) => {
-  if (!query.trim()) {
-    setError('Please enter a search query');
-    return;
-  }
-
-  setLoading(true);
-  setError('');
-
-  try {
-    console.log('🔍 Searching for:', query); // Debug
-
-    const response = await axios.post('/records/voice-search', {
-      query: query.trim(),
-      patientId: patientId
-    });
-
-    console.log('✅ Search response:', response.data); // Debug
-    console.log('📊 Keywords used:', response.data.keywords); // Debug
-    console.log('📋 Records found:', response.data.count); // Debug
-
-    setResults(response.data.records || []);
-    
-    if (response.data.records.length === 0) {
-      setError(`No records found for "${query}". Try different keywords.`);
+  const performSearch = async (query) => {
+    if (!query.trim()) {
+      setError('Please enter a search query');
+      return;
     }
-  } catch (err) {
-    console.error('❌ Search error:', err);
-    setError(err.response?.data?.message || 'Search failed');
-  } finally {
-    setLoading(false);
-  }
-};
+
+    setLoading(true);
+    setError('');
+
+    try {
+      console.log('🔍 Searching for:', query); // Debug
+
+      const response = await axios.post('/records/voice-search', {
+        query: query.trim(),
+        patientId: patientId
+      });
+
+      console.log('✅ Search response:', response.data); // Debug
+      console.log('📊 Keywords used:', response.data.keywords); // Debug
+      console.log('📋 Records found:', response.data.count); // Debug
+
+      setResults(response.data.records || []);
+
+      if (response.data.records.length === 0) {
+        setError(`No records found for "${query}". Try different keywords.`);
+      }
+    } catch (err) {
+      console.error('❌ Search error:', err);
+      setError(err.response?.data?.message || 'Search failed');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleTextSearch = () => {
     performSearch(searchQuery);
   };
 
-const handleViewFile = async (recordId, fileIndex) => {
-  try {
-    // ✅ FIX: Add query param for view mode
-    const response = await axios.get(
-      `/records/file/${recordId}/${fileIndex}?download=false`, 
-      {
-        responseType: 'blob'
-      }
-    );
+  const handleViewFile = async (recordId, fileIndex) => {
+    try {
+      // ✅ FIX: Add query param for view mode
+      const response = await axios.get(
+        `/records/file/${recordId}/${fileIndex}?download=false`,
+        {
+          responseType: 'blob'
+        }
+      );
 
-    // ✅ Create proper blob URL with correct MIME type
-    const contentType = response.headers['content-type'] || 'application/pdf';
-    const blob = new Blob([response.data], { type: contentType });
-    const url = window.URL.createObjectURL(blob);
-    
-    // Open in new tab
-    const newWindow = window.open(url, '_blank');
-    
-    // Clean up URL after window opens
-    if (newWindow) {
-      newWindow.onload = () => {
-        setTimeout(() => window.URL.revokeObjectURL(url), 100);
-      };
+      // ✅ Create proper blob URL with correct MIME type
+      const contentType = response.headers['content-type'] || 'application/pdf';
+      const blob = new Blob([response.data], { type: contentType });
+      const url = window.URL.createObjectURL(blob);
+
+      // Open in new tab
+      const newWindow = window.open(url, '_blank');
+
+      // Clean up URL after window opens
+      if (newWindow) {
+        newWindow.onload = () => {
+          setTimeout(() => window.URL.revokeObjectURL(url), 100);
+        };
+      }
+    } catch (err) {
+      console.error('View error:', err);
+      setError('Failed to view file');
     }
-  } catch (err) {
-    console.error('View error:', err);
-    setError('Failed to view file');
-  }
-};
+  };
 
-const handleDownloadFile = async (recordId, fileIndex, fileName) => {
-  try {
-    // ✅ FIX: Add query param for download mode
-    const response = await axios.get(
-      `/records/file/${recordId}/${fileIndex}?download=true`,
-      {
-        responseType: 'blob'
-      }
-    );
+  const handleDownloadFile = async (recordId, fileIndex, fileName) => {
+    try {
+      // ✅ FIX: Add query param for download mode
+      const response = await axios.get(
+        `/records/file/${recordId}/${fileIndex}?download=true`,
+        {
+          responseType: 'blob'
+        }
+      );
 
-    const url = window.URL.createObjectURL(new Blob([response.data]));
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', fileName);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(url);
-  } catch (err) {
-    console.error('Download error:', err);
-    setError('Failed to download file');
-  }
-};
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Download error:', err);
+      setError('Failed to download file');
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -199,11 +254,10 @@ const handleDownloadFile = async (recordId, fileIndex, fileName) => {
               <button
                 onClick={listening ? stopVoiceRecording : startVoiceRecording}
                 disabled={loading}
-                className={`px-6 py-3 rounded-lg transition flex items-center space-x-2 ${
-                  listening 
-                    ? 'bg-red-500 hover:bg-red-600 text-white' 
-                    : 'bg-purple-600 hover:bg-purple-700 text-white'
-                }`}
+                className={`px-6 py-3 rounded-lg transition flex items-center space-x-2 ${listening
+                  ? 'bg-red-500 hover:bg-red-600 text-white'
+                  : 'bg-purple-600 hover:bg-purple-700 text-white'
+                  }`}
               >
                 {listening ? (
                   <>

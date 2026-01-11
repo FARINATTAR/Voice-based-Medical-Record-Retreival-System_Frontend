@@ -9,7 +9,7 @@ const CreateRecordModal = ({ onClose, onSuccess }) => {
   const [patients, setPatients] = useState([]);
   const [listening, setListening] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState(null);
-  
+
   const [formData, setFormData] = useState({
     patientId: '',
     symptoms: '',
@@ -44,9 +44,22 @@ const CreateRecordModal = ({ onClose, onSuccess }) => {
     setError('');
   };
 
-  // 🎙️ Voice Recording
+  // 🎙️ Voice Recording (MODIFIED FOR VIDEO DEMO)
   const startVoiceRecording = async () => {
     try {
+      // 🎥 DEMO MODE: Simulate recording to avoid narration interference
+      setListening(true);
+
+      setTimeout(() => {
+        const demoTranscript = "Patient complains of high fever and dry cough since yesterday. Diagnosis is Viral Infection. Prescribed Paracetamol 500mg and Citrizine.";
+
+        parseTranscript(demoTranscript);
+        setListening(false);
+        setSuccess('Voice transcribed successfully! (Demo)');
+        setTimeout(() => setSuccess(''), 3000);
+      }, 3000); // Waits 3 seconds (acts like it's listening)
+
+      /* REAL CODE COMMENTED OUT FOR VIDEO
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream);
       const audioChunks = [];
@@ -63,20 +76,14 @@ const CreateRecordModal = ({ onClose, onSuccess }) => {
 
       recorder.start();
       setMediaRecorder(recorder);
-      setListening(true);
+      */
     } catch (err) {
       setError('Microphone access denied. Please allow microphone access.');
       console.error('Microphone error:', err);
     }
   };
 
-  const stopVoiceRecording = () => {
-    if (mediaRecorder) {
-      mediaRecorder.stop();
-      setListening(false);
-    }
-  };
-
+  /*
   const sendVoiceToTranscribe = async (audioBlob) => {
     try {
       const formData = new FormData();
@@ -101,17 +108,18 @@ const CreateRecordModal = ({ onClose, onSuccess }) => {
       console.error('Transcription error:', err);
     }
   };
+  */
 
   const parseTranscript = (transcript) => {
     // Simple parsing logic - can be enhanced with NLP
     const lowerTranscript = transcript.toLowerCase();
-    
+
     let parsedData = { voiceTranscript: transcript };
 
     // Extract symptoms
     if (lowerTranscript.includes('symptoms') || lowerTranscript.includes('complains of')) {
-      const symptomsMatch = transcript.match(/symptoms?:?\s*([^.]+)/i) || 
-                           transcript.match(/complains? of\s+([^.]+)/i);
+      const symptomsMatch = transcript.match(/symptoms?:?\s*([^.]+)/i) ||
+        transcript.match(/complains? of\s+([^.]+)/i);
       if (symptomsMatch) {
         parsedData.symptoms = symptomsMatch[1].trim();
       }
@@ -120,7 +128,7 @@ const CreateRecordModal = ({ onClose, onSuccess }) => {
     // Extract diagnosis
     if (lowerTranscript.includes('diagnosis') || lowerTranscript.includes('diagnosed with')) {
       const diagnosisMatch = transcript.match(/diagnosis:?\s*([^.]+)/i) ||
-                            transcript.match(/diagnosed with\s+([^.]+)/i);
+        transcript.match(/diagnosed with\s+([^.]+)/i);
       if (diagnosisMatch) {
         parsedData.diagnosis = diagnosisMatch[1].trim();
       }
@@ -129,7 +137,7 @@ const CreateRecordModal = ({ onClose, onSuccess }) => {
     // Extract prescription
     if (lowerTranscript.includes('prescribed') || lowerTranscript.includes('prescription')) {
       const prescriptionMatch = transcript.match(/prescribed?:?\s*([^.]+)/i) ||
-                               transcript.match(/prescription:?\s*([^.]+)/i);
+        transcript.match(/prescription:?\s*([^.]+)/i);
       if (prescriptionMatch) {
         parsedData.prescription = prescriptionMatch[1].trim();
       }
@@ -138,6 +146,12 @@ const CreateRecordModal = ({ onClose, onSuccess }) => {
     setFormData(prev => ({ ...prev, ...parsedData }));
   };
 
+  const stopVoiceRecording = () => {
+    // For demo mode, we just manually stop if user clicks early
+    setListening(false);
+  };
+
+  // const sendVoiceToTranscribe... (Commented out above)
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -160,7 +174,7 @@ const CreateRecordModal = ({ onClose, onSuccess }) => {
       };
 
       await axios.post('/records', payload);
-      
+
       setSuccess('Medical record created successfully!');
       setTimeout(() => {
         onSuccess();
@@ -211,11 +225,10 @@ const CreateRecordModal = ({ onClose, onSuccess }) => {
               <h4 className="font-semibold text-gray-900">🎙️ Voice Input (Optional)</h4>
               <button
                 onClick={listening ? stopVoiceRecording : startVoiceRecording}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition ${
-                  listening 
-                    ? 'bg-red-500 hover:bg-red-600 text-white' 
-                    : 'bg-blue-600 hover:bg-blue-700 text-white'
-                }`}
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition ${listening
+                  ? 'bg-red-500 hover:bg-red-600 text-white'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  }`}
               >
                 {listening ? (
                   <>
@@ -275,7 +288,7 @@ const CreateRecordModal = ({ onClose, onSuccess }) => {
                 onChange={handleChange}
                 rows="2"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                placeholder="Fever, cough, body pain..."
+                placeholder="Enter patient symptoms..."
               />
             </div>
 
@@ -291,7 +304,7 @@ const CreateRecordModal = ({ onClose, onSuccess }) => {
                 required
                 rows="2"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                placeholder="Viral fever, Upper respiratory tract infection..."
+                placeholder="Enter medical diagnosis..."
               />
             </div>
 
@@ -306,7 +319,7 @@ const CreateRecordModal = ({ onClose, onSuccess }) => {
                 onChange={handleChange}
                 rows="3"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                placeholder="Paracetamol 500mg twice daily, Rest for 3 days..."
+                placeholder="Enter prescription details..."
               />
             </div>
 
@@ -321,7 +334,7 @@ const CreateRecordModal = ({ onClose, onSuccess }) => {
                   name="bloodPressure"
                   value={formData.bloodPressure}
                   onChange={handleChange}
-                  placeholder="BP: 120/80"
+                  placeholder="BP (e.g. 120/80)"
                   className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
                 <input
@@ -330,7 +343,7 @@ const CreateRecordModal = ({ onClose, onSuccess }) => {
                   name="temperature"
                   value={formData.temperature}
                   onChange={handleChange}
-                  placeholder="Temp: 98.6°F"
+                  placeholder="Temp (°F)"
                   className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
                 <input
@@ -338,7 +351,7 @@ const CreateRecordModal = ({ onClose, onSuccess }) => {
                   name="pulse"
                   value={formData.pulse}
                   onChange={handleChange}
-                  placeholder="Pulse: 72 bpm"
+                  placeholder="Pulse (bpm)"
                   className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
                 <input
@@ -347,7 +360,7 @@ const CreateRecordModal = ({ onClose, onSuccess }) => {
                   name="weight"
                   value={formData.weight}
                   onChange={handleChange}
-                  placeholder="Weight: 70 kg"
+                  placeholder="Weight (kg)"
                   className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -364,7 +377,7 @@ const CreateRecordModal = ({ onClose, onSuccess }) => {
                 onChange={handleChange}
                 rows="2"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                placeholder="Follow-up needed in 1 week..."
+                placeholder="Any additional observations..."
               />
             </div>
 
@@ -392,7 +405,8 @@ const CreateRecordModal = ({ onClose, onSuccess }) => {
                 disabled={loading}
                 className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-300 transition"
               >
-                </button>{loading ? 'Creating Record...' : 'Create Record'}
+                {loading ? 'Creating Record...' : 'Create Record'}
+              </button>
             </div>
           </form>
         </div>
