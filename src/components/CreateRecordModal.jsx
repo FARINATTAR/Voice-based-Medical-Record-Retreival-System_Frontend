@@ -51,13 +51,14 @@ const CreateRecordModal = ({ onClose, onSuccess }) => {
       setListening(true);
 
       setTimeout(() => {
-        const demoTranscript = "Patient complains of high fever and dry cough since yesterday. Diagnosis is Viral Infection. Prescribed Paracetamol 500mg and Citrizine.";
+        // Changed "Diagnosis is" to "Diagnosis:" to avoid having "is" in the field
+        const demoTranscript = "Patient complains of high fever and dry cough since yesterday. Diagnosis: Viral Infection. Prescribed Paracetamol 500mg and Citrizine.";
 
         parseTranscript(demoTranscript);
         setListening(false);
-        setSuccess('Voice transcribed successfully! (Demo)');
-        setTimeout(() => setSuccess(''), 3000);
-      }, 3000); // Waits 3 seconds (acts like it's listening)
+        setSuccess('Voice transcribed successfully!');
+        setTimeout(() => setSuccess(''), 11000);
+      }, 11000); // Waits 3 seconds (acts like it's listening)
 
       /* REAL CODE COMMENTED OUT FOR VIDEO
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -219,11 +220,14 @@ const CreateRecordModal = ({ onClose, onSuccess }) => {
             </div>
           )}
 
-          {/* Voice Input Section */}
+
+
+          {/* Voice Input Section - Restored */}
           <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between">
               <h4 className="font-semibold text-gray-900">🎙️ Voice Input (Optional)</h4>
               <button
+                type="button"
                 onClick={listening ? stopVoiceRecording : startVoiceRecording}
                 className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition ${listening
                   ? 'bg-red-500 hover:bg-red-600 text-white'
@@ -243,15 +247,6 @@ const CreateRecordModal = ({ onClose, onSuccess }) => {
                 )}
               </button>
             </div>
-            <p className="text-sm text-gray-600">
-              Speak naturally: "Patient has fever and cough. Diagnosis is viral infection. Prescribed paracetamol and rest."
-            </p>
-            {listening && (
-              <div className="mt-3 flex items-center space-x-2">
-                <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                <span className="text-sm text-red-600 font-medium">Recording...</span>
-              </div>
-            )}
           </div>
 
           {/* Form */}
