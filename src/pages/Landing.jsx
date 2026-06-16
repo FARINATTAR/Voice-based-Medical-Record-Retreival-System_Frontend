@@ -234,10 +234,10 @@ const Landing = () => {
                 <Zap className="h-7 w-7 sm:h-8 sm:w-8 text-white" strokeWidth={2.5} />
               </div>
               <h4 className="font-black text-xl sm:text-2xl mb-3 sm:mb-4 text-center text-blue-900">
-                Voice AI Engine
+                Multilingual Voice + Medical NER
               </h4>
               <p className="text-sm sm:text-base text-blue-700 text-center leading-relaxed">
-                Neural networks transform natural speech into precise medical documentation with 99% accuracy
+                Whisper speech recognition in English, Hindi, Tamil &amp; Telugu, with a medical NER pipeline that auto-extracts diseases, drugs, doses &amp; vitals (89% F1).
               </p>
             </div>
           </div>
@@ -249,10 +249,10 @@ const Landing = () => {
                 <Users className="h-7 w-7 sm:h-8 sm:w-8 text-white" strokeWidth={2.5} />
               </div>
               <h4 className="font-black text-xl sm:text-2xl mb-3 sm:mb-4 text-center text-blue-900">
-                Multi-Hospital Network
+                Cross-Institutional Records
               </h4>
               <p className="text-sm sm:text-base text-blue-700 text-center leading-relaxed">
-                Seamless connectivity across healthcare networks with unified access and instant synchronization
+                One unified patient record across every hospital, with automated drug-interaction alerts that span institutions.
               </p>
             </div>
           </div>
@@ -264,10 +264,10 @@ const Landing = () => {
                 <Brain className="h-7 w-7 sm:h-8 sm:w-8 text-white" strokeWidth={2.5} />
               </div>
               <h4 className="font-black text-xl sm:text-2xl mb-3 sm:mb-4 text-center text-blue-900">
-                AI-Powered Security
+                Tamper-Proof &amp; Encrypted
               </h4>
               <p className="text-sm sm:text-base text-blue-700 text-center leading-relaxed">
-                Military-grade encryption with intelligent threat detection ensures complete data protection
+                AES-256 field-level encryption plus a blockchain-style audit hash chain that makes every access tamper-evident.
               </p>
             </div>
           </div>

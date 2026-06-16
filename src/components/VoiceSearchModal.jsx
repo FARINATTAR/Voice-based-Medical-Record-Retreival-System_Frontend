@@ -2,6 +2,13 @@ import { useState } from 'react';
 import axios from '../api/axios';
 import { X, Mic, MicOff, Search, Download, Eye } from 'lucide-react';
 
+const LANGUAGES = [
+  { code: 'en', label: 'English' },
+  { code: 'hi', label: 'हिन्दी (Hindi)' },
+  { code: 'ta', label: 'தமிழ் (Tamil)' },
+  { code: 'te', label: 'తెలుగు (Telugu)' },
+];
+
 const VoiceSearchModal = ({ onClose, patientId = null }) => {
   const [listening, setListening] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -9,77 +16,29 @@ const VoiceSearchModal = ({ onClose, patientId = null }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState([]);
   const [mediaRecorder, setMediaRecorder] = useState(null);
+  const [language, setLanguage] = useState('en');
+  const [detected, setDetected] = useState(null);
+  const [entities, setEntities] = useState(null);
 
-  // 🎙️ Voice Search (MODIFIED FOR VIDEO DEMO)
   const startVoiceRecording = async () => {
     try {
-      // 🎥 DEMO MODE: Simulate recording
-      setListening(true);
-      setError('');
-
-      setTimeout(() => {
-        const demoQuery = "Diabetes"; // Matching your script example
-        setSearchQuery(demoQuery);
-        setListening(false);
-
-        // 🌟 DEMO SEARCH RESULTS (FAKE DATA FOR VIDEO)
-        setResults([
-          {
-            _id: 'demo1',
-            patientId: {
-              name: 'Ramesh Gupta',
-              age: 52,
-              gender: 'Male',
-              phone: '9876543210'
-            },
-            hospitalId: {
-              name: 'City Care Hospital'
-            },
-            doctorId: {
-              name: 'Farin Attar',
-              specialization: 'General Physician'
-            },
-            diagnosis: 'Type 2 Diabetes Mellitus',
-            symptoms: 'Polydipsia, blurred vision, fatigue',
-            visitDate: new Date().toISOString(),
-            files: [
-              { originalName: 'Blood_Report.pdf', fileType: 'application/pdf', fileSize: 102400 },
-              { originalName: 'X_Ray_Chest.jpg', fileType: 'image/jpeg', fileSize: 500200 }
-            ]
-          },
-          {
-            _id: 'demo2',
-            patientId: {
-              name: 'Sita Verma',
-              age: 45,
-              gender: 'Female',
-              phone: '9988776655'
-            },
-            hospitalId: {
-              name: 'City Care Hospital'
-            },
-            doctorId: {
-              name: 'Farin Attar',
-              specialization: 'General Physician'
-            },
-            diagnosis: 'Pre-diabetic checkup',
-            symptoms: 'High blood sugar levels detected',
-            visitDate: new Date(Date.now() - 86400000).toISOString(),
-            files: []
-          }
-        ]);
-
-        // performSearch(demoQuery); // <-- DISABLED API CALL FOR DEMO
-      }, 3000);
-
-      /* REAL CODE COMMENTED OUT
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream);
-      // ... (rest of real code)
+      const audioChunks = [];
+
+      recorder.ondataavailable = (event) => {
+        audioChunks.push(event.data);
+      };
+
+      recorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+        await transcribeAndSearch(audioBlob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
       recorder.start();
       setMediaRecorder(recorder);
       setListening(true);
-      */
     } catch (err) {
       setError('Microphone access denied');
       console.error('Microphone error:', err);
@@ -87,14 +46,10 @@ const VoiceSearchModal = ({ onClose, patientId = null }) => {
   };
 
   const stopVoiceRecording = () => {
-    // For demo mode, just stop listening UI
-    setListening(false);
-    /*
     if (mediaRecorder) {
       mediaRecorder.stop();
       setListening(false);
     }
-    */
   };
 
   const transcribeAndSearch = async (audioBlob) => {
@@ -102,118 +57,125 @@ const VoiceSearchModal = ({ onClose, patientId = null }) => {
     setError('');
 
     try {
-      // Step 1: Transcribe audio
+      // Transcribe (multilingual) + search in a single call. /voice/interpret
+      // already runs Whisper, NER and the record search, so we use its results
+      // directly instead of making a second search request.
       const formData = new FormData();
       formData.append('audio', audioBlob, 'search.wav');
-      formData.append('doctorId', localStorage.getItem('userId') || 'unknown');
+      formData.append('language', language);
+      if (patientId) formData.append('patientId', patientId);
 
       const transcribeResponse = await axios.post('/voice/interpret', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
-      const transcript = transcribeResponse.data.text || '';
-      setSearchQuery(transcript);
+      const data = transcribeResponse.data;
+      setSearchQuery(data.text || '');
+      setDetected({ language: data.language, name: data.language_name, translation: data.translation });
+      setEntities(data.entities || null);
+      setResults(data.records || []);
 
-      // Step 2: Search with transcript
-      await performSearch(transcript);
+      if ((data.records || []).length === 0) {
+        setError(`No records found for "${data.text}". Try different keywords.`);
+      }
     } catch (err) {
-      setError('Voice search failed. Please try again.');
+      setError(err.response?.data?.error || 'Voice search failed. Please try again.');
       console.error('Voice search error:', err);
     } finally {
       setLoading(false);
     }
   };
-  const performSearch = async (query) => {
-    if (!query.trim()) {
-      setError('Please enter a search query');
-      return;
+const performSearch = async (query) => {
+  if (!query.trim()) {
+    setError('Please enter a search query');
+    return;
+  }
+
+  setLoading(true);
+  setError('');
+
+  try {
+    console.log('�� Searching for:', query); // Debug
+
+    const response = await axios.post('/records/voice-search', {
+      query: query.trim(),
+      patientId: patientId
+    });
+
+    console.log('✅ Search response:', response.data); // Debug
+    console.log('�� Keywords used:', response.data.keywords); // Debug
+    console.log('�� Records found:', response.data.count); // Debug
+
+    setResults(response.data.records || []);
+    
+    if (response.data.records.length === 0) {
+      setError(`No records found for "${query}". Try different keywords.`);
     }
-
-    setLoading(true);
-    setError('');
-
-    try {
-      console.log('🔍 Searching for:', query); // Debug
-
-      const response = await axios.post('/records/voice-search', {
-        query: query.trim(),
-        patientId: patientId
-      });
-
-      console.log('✅ Search response:', response.data); // Debug
-      console.log('📊 Keywords used:', response.data.keywords); // Debug
-      console.log('📋 Records found:', response.data.count); // Debug
-
-      setResults(response.data.records || []);
-
-      if (response.data.records.length === 0) {
-        setError(`No records found for "${query}". Try different keywords.`);
-      }
-    } catch (err) {
-      console.error('❌ Search error:', err);
-      setError(err.response?.data?.message || 'Search failed');
-    } finally {
-      setLoading(false);
-    }
-  };
+  } catch (err) {
+    console.error('❌ Search error:', err);
+    setError(err.response?.data?.message || 'Search failed');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleTextSearch = () => {
     performSearch(searchQuery);
   };
 
-  const handleViewFile = async (recordId, fileIndex) => {
-    try {
-      // ✅ FIX: Add query param for view mode
-      const response = await axios.get(
-        `/records/file/${recordId}/${fileIndex}?download=false`,
-        {
-          responseType: 'blob'
-        }
-      );
-
-      // ✅ Create proper blob URL with correct MIME type
-      const contentType = response.headers['content-type'] || 'application/pdf';
-      const blob = new Blob([response.data], { type: contentType });
-      const url = window.URL.createObjectURL(blob);
-
-      // Open in new tab
-      const newWindow = window.open(url, '_blank');
-
-      // Clean up URL after window opens
-      if (newWindow) {
-        newWindow.onload = () => {
-          setTimeout(() => window.URL.revokeObjectURL(url), 100);
-        };
+const handleViewFile = async (recordId, fileIndex) => {
+  try {
+    // ✅ FIX: Add query param for view mode
+    const response = await axios.get(
+      `/records/file/${recordId}/${fileIndex}?download=false`, 
+      {
+        responseType: 'blob'
       }
-    } catch (err) {
-      console.error('View error:', err);
-      setError('Failed to view file');
-    }
-  };
+    );
 
-  const handleDownloadFile = async (recordId, fileIndex, fileName) => {
-    try {
-      // ✅ FIX: Add query param for download mode
-      const response = await axios.get(
-        `/records/file/${recordId}/${fileIndex}?download=true`,
-        {
-          responseType: 'blob'
-        }
-      );
-
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', fileName);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error('Download error:', err);
-      setError('Failed to download file');
+    // ✅ Create proper blob URL with correct MIME type
+    const contentType = response.headers['content-type'] || 'application/pdf';
+    const blob = new Blob([response.data], { type: contentType });
+    const url = window.URL.createObjectURL(blob);
+    
+    // Open in new tab
+    const newWindow = window.open(url, '_blank');
+    
+    // Clean up URL after window opens
+    if (newWindow) {
+      newWindow.onload = () => {
+        setTimeout(() => window.URL.revokeObjectURL(url), 100);
+      };
     }
-  };
+  } catch (err) {
+    console.error('View error:', err);
+    setError('Failed to view file');
+  }
+};
+
+const handleDownloadFile = async (recordId, fileIndex, fileName) => {
+  try {
+    // ✅ FIX: Add query param for download mode
+    const response = await axios.get(
+      `/records/file/${recordId}/${fileIndex}?download=true`,
+      {
+        responseType: 'blob'
+      }
+    );
+
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', fileName);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error('Download error:', err);
+    setError('Failed to download file');
+  }
+};
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -242,6 +204,27 @@ const VoiceSearchModal = ({ onClose, patientId = null }) => {
 
           {/* Search Input */}
           <div className="mb-6">
+            {/* Language selector for multilingual voice (English / Hindi / Tamil / Telugu) */}
+            <div className="flex items-center space-x-2 mb-3">
+              <span className="text-sm font-medium text-gray-600">��️ Speak in:</span>
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500"
+              >
+                {LANGUAGES.map((l) => (
+                  <option key={l.code} value={l.code}>{l.label}</option>
+                ))}
+              </select>
+              {detected && (
+                <span className="text-xs text-gray-500">
+                  Detected: <strong>{detected.name || detected.language}</strong>
+                  {detected.language !== 'en' && detected.translation && (
+                    <> — “{detected.translation}”</>
+                  )}
+                </span>
+              )}
+            </div>
             <div className="flex space-x-2 mb-3">
               <input
                 type="text"
@@ -254,10 +237,11 @@ const VoiceSearchModal = ({ onClose, patientId = null }) => {
               <button
                 onClick={listening ? stopVoiceRecording : startVoiceRecording}
                 disabled={loading}
-                className={`px-6 py-3 rounded-lg transition flex items-center space-x-2 ${listening
-                  ? 'bg-red-500 hover:bg-red-600 text-white'
-                  : 'bg-purple-600 hover:bg-purple-700 text-white'
-                  }`}
+                className={`px-6 py-3 rounded-lg transition flex items-center space-x-2 ${
+                  listening 
+                    ? 'bg-red-500 hover:bg-red-600 text-white' 
+                    : 'bg-purple-600 hover:bg-purple-700 text-white'
+                }`}
               >
                 {listening ? (
                   <>
@@ -294,6 +278,28 @@ const VoiceSearchModal = ({ onClose, patientId = null }) => {
               </div>
             )}
           </div>
+
+          {/* Detected medical entities (from the NER pipeline) */}
+          {entities && entities.length > 0 && (
+            <div className="mb-6 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+              <p className="text-sm font-semibold text-indigo-800 mb-2">�� Medical entities detected</p>
+              <div className="flex flex-wrap gap-2">
+                {entities.map((e, i) => (
+                  <span
+                    key={i}
+                    className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      e.label === 'DRUG' ? 'bg-green-100 text-green-700'
+                      : e.label === 'DISEASE' ? 'bg-red-100 text-red-700'
+                      : e.label === 'DOSE' ? 'bg-amber-100 text-amber-700'
+                      : 'bg-blue-100 text-blue-700'
+                    }`}
+                  >
+                    {e.text} <span className="opacity-60">· {e.label}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Search Results */}
           {results.length > 0 && (
@@ -359,7 +365,7 @@ const VoiceSearchModal = ({ onClose, patientId = null }) => {
                     {record.files && record.files.length > 0 && (
                       <div className="mt-3 border-t pt-3">
                         <p className="text-sm font-medium text-gray-700 mb-2">
-                          📎 Attached Files ({record.files.length})
+                          �� Attached Files ({record.files.length})
                         </p>
                         <div className="space-y-2">
                           {record.files.map((file, index) => (

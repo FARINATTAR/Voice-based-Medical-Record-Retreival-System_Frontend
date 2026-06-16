@@ -259,6 +259,7 @@ import StatsCard from '../components/StatsCard';
 import AddDoctorForm from '../components/AddDoctorForm';
 import AddPatientForm from '../components/AddPatientForm';
 import UploadFilesModal from '../components/UploadFilesModal';
+import AuditTrailModal from '../components/AuditTrailModal';
 import { 
   Users, 
   UserRound, 
@@ -267,7 +268,8 @@ import {
   Plus,
   Activity,
   Stethoscope,
-  Upload
+  Upload,
+  ShieldCheck
 } from 'lucide-react';
 
 const AdminDashboard = () => {
@@ -283,6 +285,7 @@ const AdminDashboard = () => {
   const [showAddDoctor, setShowAddDoctor] = useState(false);
   const [showAddPatient, setShowAddPatient] = useState(false);
   const [showUploadFiles, setShowUploadFiles] = useState(false);
+  const [showAudit, setShowAudit] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -328,13 +331,23 @@ const AdminDashboard = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Section */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Welcome back, {user?.name}!
-          </h1>
-          <p className="text-gray-600 mt-1">
-            Here's what's happening in your hospital today
-          </p>
+        <div className="mb-8 flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Welcome back, {user?.name}!
+            </h1>
+            <p className="text-gray-600 mt-1">
+              Here's what's happening in your hospital today
+            </p>
+          </div>
+          <button
+            onClick={() => setShowAudit(true)}
+            className="flex items-center space-x-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
+            title="View tamper-evident audit trail"
+          >
+            <ShieldCheck className="h-5 w-5" />
+            <span>Audit Trail</span>
+          </button>
         </div>
 
         {/* Stats Cards */}
@@ -466,6 +479,10 @@ const AdminDashboard = () => {
           onSuccess={handleFilesUploaded}
           onClose={() => setShowUploadFiles(false)}
         />
+      )}
+
+      {showAudit && (
+        <AuditTrailModal onClose={() => setShowAudit(false)} />
       )}
     </div>
   );

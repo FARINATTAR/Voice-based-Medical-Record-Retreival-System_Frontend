@@ -11,6 +11,7 @@ import PatientLogin from './pages/PatientLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import DoctorDashboard from './pages/DoctorDashboard';
 import PatientDashboard from './pages/PatientDashboard';
+import EmergencyAccess from './pages/EmergencyAccess';
 function App() {
   return (
     <AuthProvider>
@@ -22,6 +23,9 @@ function App() {
           <Route path="/hospital/login" element={<HospitalLogin />} />
           <Route path="/doctor/login" element={<DoctorLogin />} />
           <Route path="/patient/login" element={<PatientLogin />} />
+
+          {/* Public emergency QR access (no login) */}
+          <Route path="/emergency/:token" element={<EmergencyAccess />} />
 
           {/* Protected Routes */}
           <Route

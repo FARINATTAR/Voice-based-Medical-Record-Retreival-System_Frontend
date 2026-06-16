@@ -3,7 +3,9 @@ import { useAuth } from '../context/AuthContext';
 import axios from '../api/axios';
 import Navbar from '../components/Navbar';
 import VoiceSearchModal from '../components/VoiceSearchModal';
-import { FileText, Building2, Calendar, User, Download, Eye, Mic } from 'lucide-react';
+import EmergencyQRModal from '../components/EmergencyQRModal';
+import DrugInteractionsModal from '../components/DrugInteractionsModal';
+import { FileText, Building2, Calendar, User, Download, Eye, Mic, QrCode, AlertTriangle } from 'lucide-react';
 
 const PatientDashboard = () => {
   const { user } = useAuth();
@@ -11,6 +13,8 @@ const PatientDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [showVoiceSearch, setShowVoiceSearch] = useState(false);
+  const [showQR, setShowQR] = useState(false);
+  const [showInteractions, setShowInteractions] = useState(false);
 
   useEffect(() => {
     fetchPatientRecords();
@@ -102,13 +106,31 @@ const handleViewFile = async (recordId, fileIndex) => {
               </div>
             </div>
 
-            <button
-              onClick={() => setShowVoiceSearch(true)}
-              className="flex items-center space-x-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
-            >
-              <Mic className="h-5 w-5" />
-              <span>Voice Search</span>
-            </button>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setShowInteractions(true)}
+                className="flex items-center space-x-2 px-4 py-3 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition"
+                title="Check drug interactions across all hospitals"
+              >
+                <AlertTriangle className="h-5 w-5" />
+                <span className="hidden sm:inline">Drug Check</span>
+              </button>
+              <button
+                onClick={() => setShowQR(true)}
+                className="flex items-center space-x-2 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                title="Generate emergency QR code"
+              >
+                <QrCode className="h-5 w-5" />
+                <span className="hidden sm:inline">Emergency QR</span>
+              </button>
+              <button
+                onClick={() => setShowVoiceSearch(true)}
+                className="flex items-center space-x-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+              >
+                <Mic className="h-5 w-5" />
+                <span>Voice Search</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -170,7 +192,7 @@ const handleViewFile = async (recordId, fileIndex) => {
                       {record.files && record.files.length > 0 && (
                         <div className="mt-3 border-t pt-3">
                           <p className="text-sm font-medium text-gray-700 mb-2">
-                            📎 Attached Files ({record.files.length})
+                            �� Attached Files ({record.files.length})
                           </p>
                           <div className="grid md:grid-cols-2 gap-2">
                             {record.files.map((file, index) => (
@@ -287,6 +309,16 @@ const handleViewFile = async (recordId, fileIndex) => {
           patientId={user.id}
           onClose={() => setShowVoiceSearch(false)}
         />
+      )}
+
+      {/* Emergency QR Modal */}
+      {showQR && (
+        <EmergencyQRModal patientId={user.id} onClose={() => setShowQR(false)} />
+      )}
+
+      {/* Drug Interactions Modal */}
+      {showInteractions && (
+        <DrugInteractionsModal patientId={user.id} onClose={() => setShowInteractions(false)} />
       )}
 
       {/* Record Detail Modal */}
