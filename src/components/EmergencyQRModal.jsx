@@ -12,7 +12,9 @@ const EmergencyQRModal = ({ patientId, onClose }) => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await axios.post(`/emergency/qr/${patientId}`);
+        const res = await axios.post(`/emergency/qr/${patientId}`, {
+          origin: window.location.origin
+        });
         setQr(res.data);
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to generate QR code');
