@@ -2,7 +2,7 @@
 
 > **Frontend** — React + Vite + TailwindCSS
 
-🔗 **Live Demo:** [https://frontend-phi-ashy-42.vercel.app](https://frontend-phi-ashy-42.vercel.app)
+🔗 **Live Demo:** [https://voicemed-frontend.vercel.app](https://voicemed-frontend.vercel.app)
 
 🔗 **Backend Repo:** [Voice-based-Medical-Record-Retreival-System_Backend](https://github.com/FARINATTAR/Voice-based-Medical-Record-Retreival-System_Backend)
 
